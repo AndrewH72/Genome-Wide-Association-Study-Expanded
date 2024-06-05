@@ -1188,7 +1188,7 @@ gp_and_lambing_records_test <- as.data.frame(gp_and_lambing_records_test)
 gp_and_lambing_records_test$Years.x[unlist(lapply(gp_and_lambing_records_test$Years, is.null))] <- NA
 
 # Adds in the number of lambs birthed and whether or not the animal was in the "final" data frame. Removed any duplciated rows
-gp_and_lambing_records_list <- merge(gp_and_lambing_records_test, lambs_list, by.x = "Lamb.Ear.Tag", by.y = "Ewe.ID")
+gp_and_lambing_records_list <- merge(gp_and_lambing_records_test, lambs_list, by.x = "Ewe.Ear.Tag", by.y = "Ewe.ID")
 gp_and_lambing_records_list <- unique(gp_and_lambing_records_list)
 
 # Reads in genotypic data.
@@ -1226,6 +1226,9 @@ gp_and_lambing_records_test <- gp_and_lambing_records_test[, colnames_keep]
  
 # Combines all our meta data, phenotypic data, and genetic data into a data frame which will be used for analysis.
 gpl_and_snps <- merge(gp_and_lambing_records_test, snps, by.x = "Sample.ID", by.y = "ID")
+
+# Filters out any missing values from the columns
+gpl_and_snps <- gpl_and_snps[-which(is.na(gpl_and_snps$Age.x)),]
 ```
 
 
@@ -1236,7 +1239,8 @@ cn = which(colnames(gpl_and_snps) == "SL.mm")
 phenotypes = gpl_and_snps[,1:cn]
 genotypes = gpl_and_snps[,(cn+1):ncol(gpl_and_snps)]
 
-map <- "Files/snp_info_file_[AgR_Ovine_60Kplus_20007095X378523_A1]_[6559].txt"
+
+map <- fread("Files/snp_info_file_[AgR_Ovine_60Kplus_20007095X378523_A1]_[6559].txt")
 
 # Removes any unnecessary Chromosomes
 genotypes <- genotypes[,-which(map$Chromosome_No == 'X' | map$Chromosome_No == '29' | map$Chromosome_No == '0' | map$Chromosome_No == 'MT')]
@@ -1284,6 +1288,7 @@ design.mat = model.matrix(~as.factor(phenotypes$Age.x)+as.factor(phenotypes$Age.
 set.seed(123)
 
 # Runs our Bayesian Generalized Linear Regression model
+#fm1=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(K=G,model='RKHS')),R2=0.44,nIter=60000,burnIn=10000,verbose=T,saveAt='eig_CEM_')
 fm1=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(K=G,model='RKHS')),R2=0.44,nIter=60000,burnIn=10000,verbose=T,saveAt='eig_CEM_')
 
 # Reads in our environmental and genotypic variance data.
