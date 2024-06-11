@@ -12,11 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Install libraries.
 ```{r}
 library("data.table")
-library("dplyr")
 library("plyr")
+library("dplyr")
 library("stringr")
 library("zoo")
 library(BGLR)
+library("WeightIt")
 ```
 
 
@@ -106,7 +107,7 @@ for(i in 1:9){
     # Specifying the column names to aggregate.
     column_lamb <- paste("X", unique_years[[i]], ".Lamb.Ear.Tag..", sep="")
     column_ewe <-paste("X", unique_years[[i]], ".Ewe.Ear.Tag..", sep="")
-    
+
     # Creating the name of the final data frames.
     progeny_name <- paste("progeny", unique_years[[i]], sep="_")
     
@@ -120,6 +121,187 @@ for(i in 1:9){
 }
 ```
 
+
+## Get Ewe Ear Tags From Ewes With More Than One Progeny
+```{r}
+# Identifies only the ewes that have had more than one lamb birthed. Also removes any unwanted data from our data frame.
+ewe_2012 <- progeny_2012[which(progeny_2012$`df[[column_lamb]]` > 1 & progeny_2012$`df[[column_ewe]]` != "" & progeny_2012$`df[[column_ewe]]` != "?"),]
+ewe_2013 <- progeny_2013[which(progeny_2013$`df[[column_lamb]]` > 1 & progeny_2013$`df[[column_ewe]]` != "" & progeny_2013$`df[[column_ewe]]` != "?"),]
+ewe_2014 <- progeny_2014[which(progeny_2014$`df[[column_lamb]]` > 1 & progeny_2014$`df[[column_ewe]]` != "" & progeny_2014$`df[[column_ewe]]` != "?"),]
+ewe_2015 <- progeny_2015[which(progeny_2015$`df[[column_lamb]]` > 1 & progeny_2015$`df[[column_ewe]]` != "" & progeny_2015$`df[[column_ewe]]` != "?"),]
+ewe_2016 <- progeny_2016[which(progeny_2016$`df[[column_lamb]]` > 1 & progeny_2016$`df[[column_ewe]]` != "" & progeny_2016$`df[[column_ewe]]` != "?"),]
+ewe_2017 <- progeny_2017[which(progeny_2017$`df[[column_lamb]]` > 1 & progeny_2017$`df[[column_ewe]]` != "" & progeny_2017$`df[[column_ewe]]` != "?"),]
+ewe_2018 <- progeny_2018[which(progeny_2018$`df[[column_lamb]]` > 1 & progeny_2018$`df[[column_ewe]]` != "" & progeny_2018$`df[[column_ewe]]` != "?"),]
+ewe_2019 <- progeny_2019[which(progeny_2019$`df[[column_lamb]]` > 1 & progeny_2019$`df[[column_ewe]]` != "" & progeny_2019$`df[[column_ewe]]` != "?"),]
+
+# Identifies which ewes from the entirety of 2012 are in the progeny data frame.
+found_2012 <- df_2012[which(df_2012$X2012.Ewe.Ear.Tag.. %in% ewe_2012$`df[[column_ewe]]`),]
+
+# Formatting of the data.
+found_2012$X2012.Ewe.Ear.Tag.. <- as.character(found_2012$X2012.Ewe.Ear.Tag..)
+found_2012$X2012.Lambing.Dates <- as.Date(found_2012$X2012.Lambing.Dates)
+found_2012$X2012.Ewe.Ear.Tag.. <- trimws(found_2012$X2012.Ewe.Ear.Tag..)
+
+# Splits the found data frame up by each ewe.
+found_2012_split <- split(found_2012, found_2012$X2012.Ewe.Ear.Tag..)
+
+# Checks whether or not the birthdays of lambs from the same ewe are the same.
+same_birthday_check_2012 <- lapply(test, function(found_2012) {
+     all(found_2012$X2012.Lambing.Dates == found_2012$X2012.Lambing.Dates[1])
+})
+
+# Converts our birthday data into a data frame.
+same_birthday_df_2012 <- data.frame(
+     Ewe_Ear_Tag = names(same_birthday_check_2012),
+     Same_Birthday = unlist(same_birthday_check_2012)
+)
+
+# We merge this birthday data onto the data for all of 2012. Then we select only the rows where lambs born from the same lamb did not have the same birthdays.
+df_2012_birthday <- merge(df_2012, same_birthday_df_2012, by.x = 'X2012.Ewe.Ear.Tag..', by.y = 'Ewe_Ear_Tag', all = TRUE)
+lambs_different_birthdays_2012 <- df_2012_birthday[which(df_2012_birthday$Same_Birthday == FALSE),]
+lambs_different_birthdays_2012 <- lambs_different_birthdays_2012[, c(1,2,4,7,13,14)]
+
+# The steps above are repeated for 2013-2019.
+found_2013 <- df_2013[which(df_2013$X2013.Ewe.Ear.Tag.. %in% ewe_2013$`df[[column_ewe]]`),]
+found_2013$X2013.Ewe.Ear.Tag.. <- as.character(found_2013$X2013.Ewe.Ear.Tag..)
+found_2013$X2013.Lambing.Dates <- as.Date(found_2013$X2013.Lambing.Dates)
+found_2013$X2013.Ewe.Ear.Tag.. <- trimws(found_2013$X2013.Ewe.Ear.Tag..)
+
+found_2013_split <- split(found_2013, found_2013$X2013.Ewe.Ear.Tag..)
+
+same_birthday_check_2013 <- lapply(test, function(found_2013) {
+     all(found_2013$X2013.Lambing.Dates == found_2013$X2013.Lambing.Dates[1])
+})
+
+same_birthday_df_2013 <- data.frame(
+     Ewe_Ear_Tag = names(same_birthday_check_2013),
+     Same_Birthday = unlist(same_birthday_check_2013)
+)
+
+df_2013_birthday <- merge(df_2013, same_birthday_df_2013, by.x = 'X2013.Ewe.Ear.Tag..', by.y = 'Ewe_Ear_Tag', all = TRUE)
+lambs_different_birthdays_2013 <- df_2013_birthday[which(df_2013_birthday$Same_Birthday == FALSE),]
+lambs_different_birthdays_2013 <- lambs_different_birthdays_2013[, c(1,2,4,7,13,14)]
+
+found_2014 <- df_2014[which(df_2014$X2014.Ewe.Ear.Tag.. %in% ewe_2014$`df[[column_ewe]]`),]
+found_2014$X2014.Ewe.Ear.Tag.. <- as.character(found_2014$X2014.Ewe.Ear.Tag..)
+found_2014$X2014.Lambing.Dates <- as.Date(found_2014$X2014.Lambing.Dates)
+found_2014$X2014.Ewe.Ear.Tag.. <- trimws(found_2014$X2014.Ewe.Ear.Tag..)
+
+found_2014_split <- split(found_2014, found_2014$X2014.Ewe.Ear.Tag..)
+
+same_birthday_check_2014 <- lapply(test, function(found_2014) {
+     all(found_2014$X2014.Lambing.Dates == found_2014$X2014.Lambing.Dates[1])
+})
+
+same_birthday_df_2014 <- data.frame(
+     Ewe_Ear_Tag = names(same_birthday_check_2014),
+     Same_Birthday = unlist(same_birthday_check_2014)
+)
+
+df_2014_birthday <- merge(df_2014, same_birthday_df_2014, by.x = 'X2014.Ewe.Ear.Tag..', by.y = 'Ewe_Ear_Tag', all = TRUE)
+lambs_different_birthdays_2014 <- df_2014_birthday[which(df_2014_birthday$Same_Birthday == FALSE),]
+lambs_different_birthdays_2014 <- lambs_different_birthdays_2014[, c(1,2,4,7,13,14)]
+
+found_2015 <- df_2015[which(df_2015$X2015.Ewe.Ear.Tag.. %in% ewe_2015$`df[[column_ewe]]`),]
+found_2015$X2015.Ewe.Ear.Tag.. <- as.character(found_2015$X2015.Ewe.Ear.Tag..)
+found_2015$X2015.Lambing.Dates <- as.Date(found_2015$X2015.Lambing.Dates)
+found_2015$X2015.Ewe.Ear.Tag.. <- trimws(found_2015$X2015.Ewe.Ear.Tag..)
+
+found_2015_split <- split(found_2015, found_2015$X2015.Ewe.Ear.Tag..)
+
+same_birthday_check_2015 <- lapply(test, function(found_2015) {
+     all(found_2015$X2015.Lambing.Dates == found_2015$X2015.Lambing.Dates[1])
+})
+
+same_birthday_df_2015 <- data.frame(
+     Ewe_Ear_Tag = names(same_birthday_check_2015),
+     Same_Birthday = unlist(same_birthday_check_2015)
+)
+
+df_2015_birthday <- merge(df_2015, same_birthday_df_2015, by.x = 'X2015.Ewe.Ear.Tag..', by.y = 'Ewe_Ear_Tag', all = TRUE)
+lambs_different_birthdays_2015 <- df_2015_birthday[which(df_2015_birthday$Same_Birthday == FALSE),]
+lambs_different_birthdays_2015 <- lambs_different_birthdays_2015[, c(1,2,4,7,13,14)]
+
+found_2016 <- df_2016[which(df_2016$X2016.Ewe.Ear.Tag.. %in% ewe_2016$`df[[column_ewe]]`),]
+found_2016$X2016.Ewe.Ear.Tag.. <- as.character(found_2016$X2016.Ewe.Ear.Tag..)
+found_2016$X2016.Lambing.Dates <- as.Date(found_2016$X2016.Lambing.Dates)
+found_2016$X2016.Ewe.Ear.Tag.. <- trimws(found_2016$X2016.Ewe.Ear.Tag..)
+
+found_2016_split <- split(found_2016, found_2016$X2016.Ewe.Ear.Tag..)
+
+same_birthday_check_2016 <- lapply(test, function(found_2016) {
+     all(found_2016$X2016.Lambing.Dates == found_2016$X2016.Lambing.Dates[1])
+})
+
+same_birthday_df_2016 <- data.frame(
+     Ewe_Ear_Tag = names(same_birthday_check_2016),
+     Same_Birthday = unlist(same_birthday_check_2016)
+)
+
+df_2016_birthday <- merge(df_2016, same_birthday_df_2016, by.x = 'X2016.Ewe.Ear.Tag..', by.y = 'Ewe_Ear_Tag', all = TRUE)
+lambs_different_birthdays_2016 <- df_2016_birthday[which(df_2016_birthday$Same_Birthday == FALSE),]
+lambs_different_birthdays_2016 <- lambs_different_birthdays_2016[, c(1,2,4,7,13,14)]
+
+found_2017 <- df_2017[which(df_2017$X2017.Ewe.Ear.Tag.. %in% ewe_2017$`df[[column_ewe]]`),]
+found_2017$X2017.Ewe.Ear.Tag.. <- as.character(found_2017$X2017.Ewe.Ear.Tag..)
+found_2017$X2017.Lambing.Dates <- as.Date(found_2017$X2017.Lambing.Dates)
+found_2017$X2017.Ewe.Ear.Tag.. <- trimws(found_2017$X2017.Ewe.Ear.Tag..)
+
+found_2017_split <- split(found_2017, found_2017$X2017.Ewe.Ear.Tag..)
+
+same_birthday_check_2017 <- lapply(test, function(found_2017) {
+     all(found_2017$X2017.Lambing.Dates == found_2017$X2017.Lambing.Dates[1])
+})
+
+same_birthday_df_2017 <- data.frame(
+     Ewe_Ear_Tag = names(same_birthday_check_2017),
+     Same_Birthday = unlist(same_birthday_check_2017)
+)
+
+df_2017_birthday <- merge(df_2017, same_birthday_df_2017, by.x = 'X2017.Ewe.Ear.Tag..', by.y = 'Ewe_Ear_Tag', all = TRUE)
+lambs_different_birthdays_2017 <- df_2017_birthday[which(df_2017_birthday$Same_Birthday == FALSE),]
+lambs_different_birthdays_2017 <- lambs_different_birthdays_2017[, c(1,2,4,7,13,14)]
+
+found_2018 <- df_2018[which(df_2018$X2018.Ewe.Ear.Tag.. %in% ewe_2018$`df[[column_ewe]]`),]
+found_2018$X2018.Ewe.Ear.Tag.. <- as.character(found_2018$X2018.Ewe.Ear.Tag..)
+found_2018$X2018.Lambing.Dates <- as.Date(found_2018$X2018.Lambing.Dates)
+found_2018$X2018.Ewe.Ear.Tag.. <- trimws(found_2018$X2018.Ewe.Ear.Tag..)
+
+found_2018_split <- split(found_2018, found_2018$X2018.Ewe.Ear.Tag..)
+
+same_birthday_check_2018 <- lapply(test, function(found_2018) {
+     all(found_2018$X2018.Lambing.Dates == found_2018$X2018.Lambing.Dates[1])
+})
+
+same_birthday_df_2018 <- data.frame(
+     Ewe_Ear_Tag = names(same_birthday_check_2018),
+     Same_Birthday = unlist(same_birthday_check_2018)
+)
+
+df_2018_birthday <- merge(df_2018, same_birthday_df_2018, by.x = 'X2018.Ewe.Ear.Tag..', by.y = 'Ewe_Ear_Tag', all = TRUE)
+lambs_different_birthdays_2018 <- df_2018_birthday[which(df_2018_birthday$Same_Birthday == FALSE),]
+lambs_different_birthdays_2018 <- lambs_different_birthdays_2018[, c(1,2,4,7,13,14)]
+
+found_2019 <- df_2019[which(df_2019$X2019.Ewe.Ear.Tag.. %in% ewe_2019$`df[[column_ewe]]`),]
+found_2019$X2019.Ewe.Ear.Tag.. <- as.character(found_2019$X2019.Ewe.Ear.Tag..)
+found_2019$X2019.Lambing.Dates <- as.Date(found_2019$X2019.Lambing.Dates)
+found_2019$X2019.Ewe.Ear.Tag.. <- trimws(found_2019$X2019.Ewe.Ear.Tag..)
+
+found_2019_split <- split(found_2019, found_2019$X2019.Ewe.Ear.Tag..)
+
+same_birthday_check_2019 <- lapply(test, function(found_2019) {
+     all(found_2019$X2019.Lambing.Dates == found_2019$X2019.Lambing.Dates[1])
+})
+
+same_birthday_df_2019 <- data.frame(
+     Ewe_Ear_Tag = names(same_birthday_check_2019),
+     Same_Birthday = unlist(same_birthday_check_2019)
+)
+
+df_2019_birthday <- merge(df_2019, same_birthday_df_2019, by.x = 'X2019.Ewe.Ear.Tag..', by.y = 'Ewe_Ear_Tag', all = TRUE)
+lambs_different_birthdays_2019 <- df_2019_birthday[which(df_2019_birthday$Same_Birthday == FALSE),]
+lambs_different_birthdays_2019 <- lambs_different_birthdays_2019[, c(1,2,4,7,13,14)]
+```
 
 ## Determine single, twin, triplet status for 2020-2023
 ```{r}
@@ -1276,6 +1458,7 @@ G = tcrossprod(X)
 ```{r}
 # The design matrix we used.
 design.mat = model.matrix(~as.factor(phenotypes$Age.x)+as.factor(phenotypes$Age.y)+as.factor(phenotypes$Gen.Line)+as.factor(phenotypes$Management.Group)+as.factor(phenotypes$Lambs.Birthed.x)+as.factor(phenotypes$Lambs.Birthed.y))
+design.mat <- make_full_rank(design.mat,with.intercept=FALSE)
 
 # Used to find the mean and standard deviation of our heritability for the following fives traits:
     # Coarse Edge Micron (CEM)
@@ -1296,42 +1479,42 @@ varE=scan( 'eig_CEM_varE.dat')
 varU=scan('eig_CEM_ETA_2_varU.dat')
 
 # Calculates our heritability, as well as its mean and standard deviation.
-h2=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
-mean(h2)  
-sd(h2)
+h2_CEM=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
+mean_CEM_h2 <- mean(h2_CEM)  
+sd_CEM_h2 <- sd(h2_CEM)
 
 # The steps above are repeated for the other four traits that we are looking at.
 set.seed(123)
 fm1=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(K=G,model='RKHS')),R2=0.44,nIter=60000,burnIn=10000,verbose=T,saveAt='eig_MIC.AVE_')
 varE=scan( 'eig_MIC.AVE_varE.dat')
 varU=scan('eig_MIC.AVE_ETA_2_varU.dat')
-h2=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
-mean(h2)  
-sd(h2)
+h2_MIC.AVE=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
+mean_MIC.AVE_h2 <- mean(h2_MIC.AVE)  
+sd_MIC.AVE_h2 <- sd(h2_MIC.AVE)
 
 set.seed(123)
 fm1=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(K=G,model='RKHS')),R2=0.44,nIter=60000,burnIn=10000,verbose=T,saveAt='eig_CV.MIC_')
 varE=scan( 'eig_CV.MIC_varE.dat')
 varU=scan('eig_CV.MIC_ETA_2_varU.dat')
-h2=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
-mean(h2)  
-sd(h2)
+h2_CV.MIC=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
+mean_CV.MIC_h2 <- mean(h2_CV.MIC)  
+sd_CV.MIC_h2 <- sd(h2_CV.MIC)
 
 set.seed(123)
 fm1=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(K=G,model='RKHS')),R2=0.44,nIter=60000,burnIn=10000,verbose=T,saveAt='eig_SF.MIC_')
 varE=scan( 'eig_SF.MIC_varE.dat')
 varU=scan('eig_SF.MIC_ETA_2_varU.dat')
-h2=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
-mean(h2)  
-sd(h2)
+h2_SF.MIC=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
+mean_SF.MIC_h2 <- mean(h2_SF.MIC)  
+sd_SF.MIC_h2 <- sd(h2_SF.MIC)
 
 set.seed(123)
 fm1=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(K=G,model='RKHS')),R2=0.44,nIter=60000,burnIn=10000,verbose=T,saveAt='eig_SL.MM_')
 varE=scan( 'eig_SL.MM_varE.dat')
 varU=scan('eig_SL.MM_ETA_2_varU.dat')
-h2=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
-mean(h2)  
-sd(h2)
+h2_SL.MM=varU[-c(1:2000)]/(varU[-c(1:2000)]+varE[-c(1:2000)])
+mean_SL.MM_h2 <- mean(h2_SL.MM)  
+sd_SL.MM_h2 <- sd(h2_SL.MM)
 
 # Groups SNPs into 1 Mb windows along each chromosome
 getSNPWindows = function(map){
@@ -1384,7 +1567,7 @@ winvar=getWindowVariances(fm2,X,map)
 winvar=winvar[order(winvar$PCGenVar,decreasing = T),]
 
 # Writes the data onto a file.
-file <- fwrite(winvar, file="winvar_CEM.csv")
+file_CEM <- fwrite(winvar, file="winvar_CEM.csv")
 
 
 # The steps above are repeated for the other four traits we are looking at.
@@ -1392,67 +1575,67 @@ set.seed(123)
 fm2=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(X=X,model='BayesB',probIn=0.01,saveEffects=T)),R2=0.298593,nIter=60000,burnIn=10000,verbose=T,saveAt='BayesB_MIC.AVE_')
 winvar=getWindowVariances(fm2,X,map)
 winvar=winvar[order(winvar$PCGenVar,decreasing = T),]
-file <- fwrite(winvar, file="winvar_MIC.AVE.csv")
+file_MIC.AVE <- fwrite(winvar, file="winvar_MIC.AVE.csv")
 
 set.seed(123)
 fm2=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(X=X,model='BayesB',probIn=0.01,saveEffects=T)),R2=0.298593,nIter=60000,burnIn=10000,verbose=T,saveAt='BayesB_CV.MIC_')
 winvar=getWindowVariances(fm2,X,map)
 winvar=winvar[order(winvar$PCGenVar,decreasing = T),]
-file <- fwrite(winvar, file="winvar_CV.MIC.csv")
+file_CV.MIC <- fwrite(winvar, file="winvar_CV.MIC.csv")
 
 set.seed(123)
 fm2=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(X=X,model='BayesB',probIn=0.01,saveEffects=T)),R2=0.298593,nIter=60000,burnIn=10000,verbose=T,saveAt='BayesB_SF.MIC_')
 winvar=getWindowVariances(fm2,X,map)
 winvar=winvar[order(winvar$PCGenVar,decreasing = T),]
-file <- fwrite(winvar, file="winvar_SF.MIC.csv")
+file_SF.MIC <- fwrite(winvar, file="winvar_SF.MIC.csv")
 
 set.seed(123)
 fm2=BGLR(y=unlist(phenotypes$CEM),ETA=list(list(X=design.mat, model="FIXED"),list(X=X,model='BayesB',probIn=0.01,saveEffects=T)),R2=0.298593,nIter=60000,burnIn=10000,verbose=T,saveAt='BayesB_SL.MM_')
 winvar=getWindowVariances(fm2,X,map)
 winvar=winvar[order(winvar$PCGenVar,decreasing = T),]
-file <- fwrite(winvar, file="winvar_SL.MM.csv")
+file_SL.MM <- fwrite(winvar, file="winvar_SL.MM.csv")
 
 # Calculates the genetic variance of each trait.
 CEM_varU <- fread("eig_CEM_ETA_2_varU.dat")
-mean(CEM_varU$V1)
-sd(CEM_varU$V1)
+mean_CEM_varU <- mean(CEM_varU$V1)
+sd_CEM_varU <- sd(CEM_varU$V1)
 
 MIC.AVE_varU <- fread("eig_MIC.AVE_ETA_2_varU.dat")
-mean(MIC.AVE_varU$V1)
-sd(MIC.AVE_varU$V1)
+mean_MIC.AVE_varU <- mean(MIC.AVE_varU$V1)
+sd_MIC.AVE_varU <- sd(MIC.AVE_varU$V1)
 
 CV.MIC_varU <- fread("eig_CV.MIC_ETA_2_varU.dat")
-mean(CV.MIC_varU$V1)
-sd(CV.MIC_varU$V1)
+mean_CV.MIC_varU <- mean(CV.MIC_varU$V1)
+sd_CV.MIC_varU <- sd(CV.MIC_varU$V1)
 
 SF.MIC_varU <- fread("eig_SF.MIC_ETA_2_varU.dat")
-mean(SF.MIC_varU$V1)
-sd(SF.MIC_varU$V1)
+mean_SF.MIC_varU <- mean(SF.MIC_varU$V1)  
+sd_SF.MIC_varU <- sd(SF.MIC_varU$V1)
 
 SL.MM_varU <- fread("eig_SL.MM_ETA_2_varU.dat")
-mean(SL.MM_varU$V1)
-sd(SL.MM_varU$V1)
+mean_SL.MM_varU <- mean(SL.MM_varU$V1)
+sd_SL.MM_varU <- sd(SL.MM_varU$V1)
 
 # Calculates the environmnetal variance of each trait.
 CEM_varE <- fread("eig_CEM_varE.dat")
-mean(CEM_varE$V1)
-sd(CEM_varE$V1)
+mean_CEM_varE <-mean(CEM_varE$V1)
+sd_CEM_varE <- sd(CEM_varE$V1)
 
 MIC.AVE_varE <- fread("eig_MIC.AVE_varE.dat")
-mean(MIC.AVE_varE$V1)
-sd(MIC.AVE_varE$V1)
+mean_MIC.AVE_varE <- mean(MIC.AVE_varE$V1)
+sd_MIC.AVE_varE <- sd(MIC.AVE_varE$V1)
 
 CV.MIC_varE <- fread("eig_CV.MIC_varE.dat")
-mean(CV.MIC_varE$V1)
-sd(CV.MIC_varE$V1)
+mean_CV.MIC_varE <- mean(CV.MIC_varE$V1)
+sd_CV.MIC_varE <- sd(CV.MIC_varE$V1)
 
 SF.MIC_varE <- fread("eig_SF.MIC_varE.dat")
-mean(SF.MIC_varE$V1)
-sd(SF.MIC_varE$V1)
+mean_SF.MIC_varE <- mean(SF.MIC_varE$V1)
+sd_SF.MIC_varE <- sd(SF.MIC_varE$V1)
 
 SL.MM_varE <- fread("eig_SL.MM_varE.dat")
-mean(SL.MM_varE$V1)
-sd(SL.MM_varE$V1)
+mean_SL.MM_varE <- mean(SL.MM_varE$V1)
+sd_SL.MM_varE <- sd(SL.MM_varE$V1)
 
 # Calculates the phenotypic variance of each trait.
 CEM.varU <- as.numeric(readLines("eig_CEM_ETA_2_varU.dat"))
@@ -1476,20 +1659,20 @@ SL.MM.varE <- as.numeric(readLines("eig_SL.MM_varE.dat"))
 SL.MM_varP <- SL.MM.varU + SL.MM.varE
 
 # Finds the mean and standard deviation of the phenotypic variance.
-mean(CEM_varP)
-sd(CEM_varP)
+mean_CEM_varP <- mean(CEM_varP)
+sd_CEM_varP <- sd(CEM_varP)
 
-mean(MIC.AVE_varP)
-sd(MIC.AVE_varP)
+mean_MIC.AVE_varP <- mean(MIC.AVE_varP)
+sd_MIC.AVE_varP <- sd(MIC.AVE_varP)
 
-mean(CV.MIC_varP)
-sd(CV.MIC_varP)
+mean_CV.MIC_varP <- mean(CV.MIC_varP)
+sd_CV.MIC_varP <- sd(CV.MIC_varP)
 
-mean(SF.MIC_varP)
-sd(SF.MIC_varP)
+mean_SF.MIC_varP <- mean(SF.MIC_varP)
+sd_SF.MIC_varP <- sd(SF.MIC_varP)
 
-mean(SL.MM_varP)
-sd(SL.MM_varP)
+mean_SL.MM_varP <- mean(SL.MM_varP)
+sd_SL.MM_varP <- sd(SL.MM_varP)
 ```
 
 
@@ -1640,4 +1823,9 @@ manhattanPlot(cem[which(cem$Chr>0),])
 # Creates a plot for our PCA data.
 plot(pca$x, col = as.numeric(as.factor(phenotypes$Gen.Line)), pch = 19, xlab="PC1: 17.1%", ylab = "PC2: 5.7%")
 legend("bottomleft",legend=c("Merino","Rafter 7", "Unknowns"),pch=15,col=c("black","red", "green"), cex = 0.6)
+```
+
+## Run Everything
+```{r}
+# A blank cell just to run everthying in a single go.
 ```
